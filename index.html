@@ -84,7 +84,6 @@
     }
     .footer { margin-top: 24px; color: var(--muted); font-size: 12px; text-align: center; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
-    /* checkbox list styling */
     .dish-checkbox-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:10px; background:transparent; border:1px solid transparent; }
     .dish-checkbox-row input[type="checkbox"] { width:18px; height:18px; }
     .dish-checkbox-row label { cursor:pointer; }
@@ -92,520 +91,248 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <div class="brand-badge" aria-hidden="true"></div>
-        <div>
-          <div style="font-size:14px;color:var(--muted)">Single-File App</div>
-          <div style="font-size:18px">Gerichte – Client & Admin</div>
-        </div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="brand-badge" aria-hidden="true"></div>
+      <div>
+        <div style="font-size:14px;color:var(--muted)">Single-File App</div>
+        <div style="font-size:18px">Gerichte – Client & Admin</div>
       </div>
-      <nav>
-        <a href="#/client" id="link-client" class="btn">Client</a>
-        <!-- Admin-Tab absichtlich entfernt, damit Clients nicht per UI reinkommen -->
-      </nav>
-    </header>
-
-    <!-- Client View -->
-    <section id="view-client" class="panel" hidden>
-      <h1>Bestellung aufgeben</h1>
-      <div class="grid grid-2">
-        <div class="panel">
-          <h2>1) Gerichte wählen</h2>
-          <div id="client-dish-picker"></div>
-        </div>
-        <div class="panel">
-          <h2>2) Wohin & Name</h2>
-          <form id="order-form">
-            <label for="customer-name">Name</label>
-            <input id="customer-name" name="customer-name" placeholder="Max Mustermann" required />
-
-            <label for="destination">Wohin</label>
-            <input id="destination" name="destination" placeholder="z. B. Musterstraße 12, 12345 Musterstadt" required />
-            <div class="actions" style="margin-top:10px">
-              <button class="primary" type="submit">Bestellen</button>
-              <button type="reset" id="order-reset-btn">Zurücksetzen</button>
-            </div>
-            <div class="hint">Nach Absenden erscheint deine Bestellung im Admin-Bereich.</div>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- Admin View -->
-    <section id="view-admin" class="panel" hidden>
-      <h1>Admin</h1>
-      <div class="grid grid-2">
-        <div class="panel">
-          <h2>Gerichte verwalten</h2>
-          <form id="dish-form">
-            <label for="dish-name">Gericht</label>
-            <input id="dish-name" placeholder="z. B. Spaghetti Bolognese" required />
-            <div class="row">
-              <div>
-                <label for="dish-price">Preis (€)</label>
-                <input id="dish-price" type="number" step="0.01" min="0" placeholder="9.90" />
-              </div>
-              <div>
-                <label for="dish-tags">Tags (optional)</label>
-                <input id="dish-tags" placeholder="vegan, scharf, ..."/>
-              </div>
-            </div>
-            <label for="dish-desc">Beschreibung (optional)</label>
-            <textarea id="dish-desc" placeholder="Kurzbeschreibung..."></textarea>
-            <div class="actions" style="margin-top:10px">
-              <button class="primary" type="submit">Gericht anlegen</button>
-              <button type="button" id="seed-btn">Demo-Daten füllen</button>
-              <button class="warn" type="button" id="clear-dishes-btn">Alle Gerichte löschen</button>
-            </div>
-          </form>
-
-          <!-- Export / Import Gerichte -->
-          <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-            <button id="export-dishes-btn">Gerichte exportieren</button>
-            <button id="import-dishes-btn">Gerichte importieren</button>
-            <input id="import-dishes-file" type="file" accept="application/json" style="display:none" />
-            <div class="muted" style="align-self:center; font-size:13px;">Export/Import synchronisiert manuell zwischen Geräten.</div>
-          </div>
-
-          <div id="dish-list" class="list" style="margin-top:10px"></div>
-        </div>
-        <div class="panel">
-          <h2>Eingehende Bestellungen</h2>
-          <div class="actions" style="margin-bottom:8px">
-            <button class="warn" id="clear-done-btn" type="button">Erledigte entfernen</button>
-            <button class="danger" id="clear-orders-btn" type="button">Alle Bestellungen löschen</button>
-          </div>
-          <div id="order-list" class="list"></div>
-          <div class="hint">Bestellungen werden lokal im Browser gespeichert (localStorage).</div>
-        </div>
-      </div>
-    </section>
-
-    <div class="footer">
-      Routen: <code>#/client</code> und <code>#/admin</code> • Single File • GitHub Pages kompatibel
     </div>
-  </div>
+    <nav>
+      <a href="#/client" id="link-client" class="btn">Client</a>
+    </nav>
+  </header>
 
-  <script>
-    // ---------- Utilities ----------
-    const $ = (sel, root=document) => root.querySelector(sel);
-    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-    const el = (tag, attrs={}, ...children) => {
-      const n = document.createElement(tag);
-      Object.entries(attrs).forEach(([k,v]) => {
-        if (k === "class") n.className = v;
-        else if (k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2), v);
-        else if (v !== undefined && v !== null) n.setAttribute(k, v);
-      });
-      for (const c of children) n.append(c instanceof Node ? c : document.createTextNode(c));
-      return n;
-    };
-    const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+  <section id="view-client" class="panel" hidden>
+    <h1>Bestellung aufgeben</h1>
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>1) Gerichte wählen</h2>
+        <div id="client-dish-picker"></div>
+      </div>
+      <div class="panel">
+        <h2>2) Wohin & Name</h2>
+        <form id="order-form">
+          <label for="customer-name">Name</label>
+          <input id="customer-name" name="customer-name" placeholder="Max Mustermann" required />
 
-    // ---------- REMOTE SYNC CONFIG ----------
-    // Wenn du automatische Synchronisation möchtest, setze REMOTE_SYNC = true
-    // und trage hier die Daten aus deinem JSONBin.io Account ein.
-    // Erstelle (kostenlos) ein Konto auf https://jsonbin.io, erstelle eine Bin und generiere einen API-Key (Master Key oder Access Key mit Update-Rechten).
-    const REMOTE_SYNC = true; // false = nur localStorage (Standard). true = sync mit JSONBin
-    const JSONBIN_BIN_ID = "68a5d4feae596e708fcf10d3"; // z.B. '6360e54a65b57a31e6a94a42'
-    const JSONBIN_MASTER_KEY = "$2a$10$N/2gxnECUzbO8QCffVQ7Ye6N5Oare5DGjQCPaTkkcovABoafVICSS"; // dein JSONBin Master Key / Access Key
-    const JSONBIN_URL = JSONBIN_BIN_ID ? `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}` : "";
-    // ---------------------------------------
+          <label for="destination">Wohin</label>
+          <input id="destination" name="destination" placeholder="z. B. Musterstraße 12, 12345 Musterstadt" required />
 
-    // ---------- Storage Layer ----------
-    const LS_KEYS = {
-      dishes: "app.dishes.v1",
-      orders: "app.orders.v1",
-    };
-    const getDishesLocal = () => {
-      try { return JSON.parse(localStorage.getItem(LS_KEYS.dishes) || "[]"); } catch(e){ return []; }
-    };
-    const setDishesLocal = (arr) => localStorage.setItem(LS_KEYS.dishes, JSON.stringify(arr));
-    const getOrders = () => {
-      try { return JSON.parse(localStorage.getItem(LS_KEYS.orders) || "[]"); } catch(e){ return []; }
-    };
-    const setOrders = (arr) => localStorage.setItem(LS_KEYS.orders, JSON.stringify(arr));
+          <div class="actions" style="margin-top:10px">
+            <button class="primary" type="submit">Bestellen</button>
+            <button type="reset" id="order-reset-btn">Zurücksetzen</button>
+          </div>
+          <div class="hint">Nach Absenden erscheint deine Bestellung im Admin-Bereich.</div>
+        </form>
+      </div>
+    </div>
+  </section>
 
-    // Helper to update dishes locally and optionally push to remote
-    async function updateDishes(dishes, syncRemote = true) {
-      setDishesLocal(dishes);
-      if (REMOTE_SYNC && syncRemote && JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
-        try {
-          await remoteSaveDishes(dishes);
-          console.log("Remote dishes updated");
-        } catch (err) {
-          console.warn("Remote save failed:", err);
-          alert("Warnung: Remote-Synchronisation fehlgeschlagen. Änderungen sind lokal gespeichert.");
-        }
-      }
-    }
+  <section id="view-admin" class="panel" hidden>
+    <h1>Admin</h1>
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>Gerichte verwalten</h2>
+        <form id="dish-form">
+          <label for="dish-name">Gericht</label>
+          <input id="dish-name" placeholder="z. B. Spaghetti Bolognese" required />
+          <div class="row">
+            <div>
+              <label for="dish-price">Preis (€)</label>
+              <input id="dish-price" type="number" step="0.01" min="0" placeholder="9.90" />
+            </div>
+            <div>
+              <label for="dish-tags">Tags (optional)</label>
+              <input id="dish-tags" placeholder="vegan, fleisch, salat" />
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" type="submit">Hinzufügen / Speichern</button>
+            <button type="button" id="dish-reset-btn">Zurücksetzen</button>
+          </div>
+        </form>
+        <div id="dish-list" class="list"></div>
+      </div>
+      <div class="panel">
+        <h2>Bestellungen</h2>
+        <div id="order-list" class="list"></div>
+      </div>
+    </div>
+  </section>
 
-    // ---------- Remote (JSONBin) helpers ----------
-    async function remoteFetchDishes() {
-      if (!REMOTE_SYNC || !JSONBIN_BIN_ID) return null;
-      const url = JSONBIN_URL;
-      const headers = {};
-      if (JSONBIN_MASTER_KEY) headers['X-Master-Key'] = JSONBIN_MASTER_KEY;
-      try {
-        const res = await fetch(url, { method: 'GET', headers });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const payload = await res.json();
-        // try multiple shapes: payload.record.dishes | payload.record.data | payload.dishes | payload
-        let remote = null;
-        if (payload && payload.record) {
-          remote = payload.record.dishes ?? payload.record.data ?? payload.record;
-        } else {
-          remote = payload.dishes ?? payload.data ?? payload;
-        }
-        // If remote is object with wrapper, try to extract array
-        if (remote && Array.isArray(remote)) return remote;
-        // if remote is object like { dishes: [...] }
-        if (remote && typeof remote === 'object') {
-          for (const v of Object.values(remote)) {
-            if (Array.isArray(v)) return v;
-          }
-        }
-        return null;
-      } catch (err) {
-        console.warn("remoteFetchDishes error:", err);
-        return null;
-      }
-    }
+  <div class="footer">© 2025 – Emil Beer</div>
+</div>
 
-    async function remoteSaveDishes(dishes) {
-      if (!REMOTE_SYNC || !JSONBIN_BIN_ID || !JSONBIN_MASTER_KEY) throw new Error('Remote sync not configured');
-      const url = JSONBIN_URL;
-      const headers = {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_MASTER_KEY
-      };
-      // JSONBin expects the JSON content as you want it stored. We'll store { dishes: [...] }.
-      const body = JSON.stringify({ dishes });
-      const res = await fetch(url, { method: 'PUT', headers, body });
-      if (!res.ok) {
-        const text = await res.text().catch(()=>'');
-        throw new Error('HTTP ' + res.status + ' ' + text);
-      }
-      return await res.json();
-    }
+<script>
+const REMOTE_SYNC_DISHES = true;
+const REMOTE_SYNC_ORDERS = true;
+const JSONBIN_KEY = "$2a$10$N/2gxnECUzbO8QCffVQ7Ye6N5Oare5DGjQCPaTkkcovABoafVICSS"; // Master Key
+const JSONBIN_DISHES_ID = "68a5d4feae596e708fcf10d3";
+const JSONBIN_ORDERS_ID = "68a5e44a43b1c97be9236b9e";
 
-    // ---------- Seed demo dishes if none ----------
-    async function seedDemo() {
-      const existing = getDishesLocal();
-      if (existing.length) return;
-      const demo = [
-        { id: uid(), name: "Margherita", price: 7.5, desc: "Tomate, Mozzarella, Basilikum", tags: "vegetarisch" },
-        { id: uid(), name: "Spaghetti Bolognese", price: 9.9, desc: "Hausgemachte Soße", tags: "" },
-        { id: uid(), name: "Rotes Thai Curry", price: 11.5, desc: "Mit Gemüse & Kokos", tags: "scharf, vegan" }
-      ];
-      await updateDishes(demo, true);
-    }
+let dishes = [];
+let orders = [];
 
-    // ---------- Router (Hash) ----------
-    const routes = {
-      "/client": () => showView("client"),
-      "/admin": () => requireAdminAccess(),
-      "/": () => location.replace("#/client"),
-    };
-    function showView(name) {
-      $("#view-client").hidden = name !== "client";
-      $("#view-admin").hidden = name !== "admin";
-      const linkClient = $("#link-client");
-      if (linkClient) linkClient.classList.toggle("active", name === "client");
-      const linkAdmin = $("#link-admin");
-      if (linkAdmin) linkAdmin.classList.toggle("active", name === "admin");
-      if (name === "client") renderClient();
-      if (name === "admin") renderAdmin();
-    }
-    function onHashChange() {
-      const path = location.hash.replace("#", "") || "/client";
-      (routes[path] || routes["/"])();
-    }
-    window.addEventListener("hashchange", onHashChange);
+// --- Utility ---
+function saveLocal() {
+  localStorage.setItem("dishes", JSON.stringify(dishes));
+  localStorage.setItem("orders", JSON.stringify(orders));
+}
 
-    // simple client-side admin password (only deterrent, not secure)
-    const ADMIN_PASSWORD = "admin123";
+function loadLocal() {
+  const d = localStorage.getItem("dishes");
+  if(d) dishes = JSON.parse(d);
+  const o = localStorage.getItem("orders");
+  if(o) orders = JSON.parse(o);
+}
 
-    function requireAdminAccess() {
-      const pw = prompt("Admin-Passwort eingeben:");
-      if (pw === ADMIN_PASSWORD) {
-        showView("admin");
-      } else {
-        alert("Zugriff verweigert.");
-        location.replace("#/client");
-      }
-    }
+// --- Remote Sync ---
+async function fetchBin(binId) {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+    headers: { "X-Master-Key": JSONBIN_KEY }
+  });
+  if(!res.ok) throw new Error("Fehler beim Laden des Bins");
+  const data = await res.json();
+  return data.record || [];
+}
 
-    // ---------- Client View ----------
-    function renderClient() {
-      const mount = $("#client-dish-picker");
-      mount.innerHTML = "";
-      const dishes = getDishesLocal();
-      if (!dishes.length) {
-        mount.append(el("div", {class:"empty"}, "Noch keine Gerichte verfügbar. Bitte Admin fragen, welche anzulegen."));
-        return;
-      }
+async function saveBin(binId, data) {
+  await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type":"application/json",
+      "X-Master-Key": JSONBIN_KEY,
+      "X-Bin-Versioning": "false"
+    },
+    body: JSON.stringify(data)
+  });
+}
 
-      const listWrap = el("div");
-      for (const d of dishes) {
-        const row = el("div", { class: "dish-checkbox-row" });
-        const cb = el("input", { type: "checkbox", value: d.id, id: "dish-" + d.id });
-        const label = el("label", { for: "dish-" + d.id }, `${d.name}${d.price ? ` – ${d.price.toFixed(2)} €` : ""}`);
-        const desc = d.desc ? el("div", { class: "muted", style: "font-size:13px; margin-left:28px;" }, d.desc) : null;
-        row.append(cb, label);
-        listWrap.append(row);
-        if (desc) listWrap.append(desc);
-      }
-      mount.append(listWrap);
-    }
+// --- Dish Rendering ---
+function renderDishes() {
+  const list = document.getElementById("dish-list");
+  list.innerHTML = "";
+  if(!dishes.length) { list.innerHTML='<div class="empty">Keine Gerichte.</div>'; return; }
+  dishes.forEach((dish,i)=>{
+    const div = document.createElement("div");
+    div.className="item";
+    div.innerHTML = `
+      <div class="item-header">
+        <strong>${dish.name}</strong>
+        <div class="actions">
+          <button onclick="editDish(${i})" class="ok">✏️</button>
+          <button onclick="deleteDish(${i})" class="danger">🗑️</button>
+        </div>
+      </div>
+      <div class="muted">${dish.tags?dish.tags.join(", "):""} - ${dish.price?dish.price+"€":""}</div>
+    `;
+    list.appendChild(div);
+  });
+  renderClientPicker();
+}
 
-    // Submit handler (multiple dishes + destination + name)
-    $("#order-form").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const dishesAll = getDishesLocal();
-      const checked = Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]:checked"))
-        .map(cb => dishesAll.find(d => d.id === cb.value))
-        .filter(Boolean);
+function renderClientPicker() {
+  const picker = document.getElementById("client-dish-picker");
+  picker.innerHTML = "";
+  if(!dishes.length) { picker.innerHTML='<div class="empty">Keine Gerichte verfügbar.</div>'; return; }
+  dishes.forEach((dish,i)=>{
+    const div = document.createElement("div");
+    div.className="dish-checkbox-row";
+    div.innerHTML=`<input type="checkbox" id="dish-${i}" value="${i}"><label for="dish-${i}">${dish.name} ${dish.price?`(${dish.price}€)`:""}</label>`;
+    picker.appendChild(div);
+  });
+}
 
-      if (!checked.length) { alert("Bitte mindestens ein Gericht auswählen."); return; }
+// --- Dish Actions ---
+document.getElementById("dish-form").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const name = document.getElementById("dish-name").value.trim();
+  const price = parseFloat(document.getElementById("dish-price").value)||0;
+  const tags = document.getElementById("dish-tags").value.split(",").map(t=>t.trim()).filter(Boolean);
+  if(!name) return;
+  const idx = dishes.findIndex(d=>d.name===name);
+  if(idx>=0){ dishes[idx]={name, price, tags}; } else { dishes.push({name, price, tags}); }
+  renderDishes();
+  saveLocal();
+  if(REMOTE_SYNC_DISHES) await saveBin(JSONBIN_DISHES_ID,dishes);
+  e.target.reset();
+});
 
-      const customerName = $("#customer-name").value.trim();
-      if (!customerName) { alert("Bitte deinen Namen angeben."); return; }
+function editDish(idx) {
+  const d=dishes[idx];
+  document.getElementById("dish-name").value=d.name;
+  document.getElementById("dish-price").value=d.price||"";
+  document.getElementById("dish-tags").value=d.tags?d.tags.join(","):"";
+}
+function deleteDish(idx){
+  if(!confirm("Wirklich löschen?")) return;
+  dishes.splice(idx,1);
+  renderDishes();
+  saveLocal();
+  if(REMOTE_SYNC_DISHES) saveBin(JSONBIN_DISHES_ID,dishes);
+}
+document.getElementById("dish-reset-btn").addEventListener("click",()=>document.getElementById("dish-form").reset());
 
-      const destination = $("#destination").value.trim();
-      if (!destination) { alert("Bitte Feld 'Wohin' ausfüllen."); return; }
+// --- Orders ---
+function renderOrders() {
+  const list = document.getElementById("order-list");
+  list.innerHTML = "";
+  if(!orders.length){ 
+    list.innerHTML='<div class="empty">Keine Bestellungen.</div>'; 
+    return; 
+  }
+  orders.forEach((o,i)=>{
+    const div = document.createElement("div");
+    div.className="item";
+    div.innerHTML=`
+      <div class="item-header">
+        <strong>${o.name}</strong> <span class="muted">${o.destination}</span>
+        <div class="actions">
+          <button class="ok" onclick="completeOrder(${i})">✔️ Erledigt</button>
+        </div>
+      </div>
+      <ul class="inline-list">
+        ${o.items.map(it=>`<li>${it}</li>`).join("")}
+      </ul>
+    `;
+    list.appendChild(div);
+  });
+}
 
-      const order = {
-        id: uid(),
-        dishes: checked.map(d => ({ id: d.id, name: d.name, price: d.price || 0 })),
-        destination,
-        customerName,
-        status: "open",
-        createdAt: new Date().toISOString(),
-      };
+// --- Order Actions ---
+function completeOrder(idx){
+  if(!confirm("Markieren als erledigt / löschen?")) return;
+  orders.splice(idx,1);
+  renderOrders();
+  saveLocal();
+  if(REMOTE_SYNC_ORDERS) saveBin(JSONBIN_ORDERS_ID,orders);
+}
 
-      const orders = getOrders();
-      orders.unshift(order);
-      setOrders(orders);
+// --- Routing ---
+function route() {
+  const hash=location.hash.replace("#/","");
+  document.getElementById("view-client").hidden=true;
+  document.getElementById("view-admin").hidden=true;
+  if(hash==="admin"){ document.getElementById("view-admin").hidden=false; }
+  else{ document.getElementById("view-client").hidden=false; }
+  document.querySelectorAll("nav a.btn").forEach(a=>a.classList.remove("active"));
+  document.querySelector(`nav a[href="#/${hash||'client'}"]`)?.classList.add("active");
+}
 
-      e.target.reset();
-      Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]")).forEach(cb => cb.checked = false);
-
-      alert("Bestellung wurde übermittelt.");
-    });
-
-    // Reset button behaviour: also uncheck checkboxes
-    $("#order-reset-btn").addEventListener("click", () => {
-      Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]")).forEach(cb => cb.checked = false);
-    });
-
-    // ---------- Admin View ----------
-    function renderAdmin() {
-      renderDishList();
-      renderOrderList();
-    }
-
-    // Dishes
-    $("#dish-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = $("#dish-name").value.trim();
-      const price = parseFloat($("#dish-price").value);
-      const desc = $("#dish-desc").value.trim();
-      const tags = $("#dish-tags").value.trim();
-      if (!name) { alert("Gerichtsname erforderlich."); return; }
-      const dishes = getDishesLocal();
-      dishes.unshift({ id: uid(), name, price: isFinite(price) ? price : 0, desc, tags });
-      await updateDishes(dishes, true);
-      e.target.reset();
-      renderDishList();
-    });
-
-    $("#seed-btn").addEventListener("click", async () => { await seedDemo(); renderDishList(); });
-    $("#clear-dishes-btn").addEventListener("click", async () => {
-      if (confirm("Alle Gerichte wirklich löschen?")) { await updateDishes([], true); renderDishList(); }
-    });
-
-    function renderDishList() {
-      const mount = $("#dish-list");
-      mount.innerHTML = "";
-      const dishes = getDishesLocal();
-      if (!dishes.length) {
-        mount.append(el("div", {class:"empty"}, "Keine Gerichte vorhanden."));
-        return;
-      }
-      for (const d of dishes) {
-        const item = el("div", { class:"item" },
-          el("div", { class:"item-header" },
-            el("strong", {}, d.name),
-            el("div", {}, d.price ? el("span", { class:"badge" }, `${d.price.toFixed(2)} €`) : "")
-          ),
-          d.desc ? el("div", { class:"muted" }, d.desc) : "",
-          d.tags ? el("div", { class:"muted" }, `Tags: ${d.tags}`) : "",
-          el("div", { class:"actions" },
-            el("button", { class:"danger", onclick: async () => { await deleteDish(d.id); } }, "Löschen")
-          )
-        );
-        mount.append(item);
-      }
-    }
-    async function deleteDish(id) {
-      const dishes = getDishesLocal().filter(d => d.id !== id);
-      await updateDishes(dishes, true);
-      renderDishList();
-    }
-
-    // Export / Import handlers
-    $("#export-dishes-btn").addEventListener("click", () => {
-      const data = getDishesLocal();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "gerichte_export_" + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + ".json";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    });
-
-    $("#import-dishes-btn").addEventListener("click", () => {
-      $("#import-dishes-file").click();
-    });
-
-    $("#import-dishes-file").addEventListener("change", async (ev) => {
-      const f = ev.target.files && ev.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (!Array.isArray(parsed)) { alert("Ungültiges Format: JSON-Array erwartet."); return; }
-          if (confirm("Gerichte ersetzen? OK = ersetzen, Abbrechen = anhängen (keine Duplikate nach Name).")) {
-            const normalized = parsed.map(p => ({ id: uid(), name: String(p.name||"").trim(), price: isFinite(Number(p.price)) ? Number(p.price) : 0, desc: p.desc || "", tags: p.tags || "" })).filter(x => x.name);
-            await updateDishes(normalized, true);
-            alert("Gerichte ersetzt (importiert).");
-          } else {
-            const existing = getDishesLocal();
-            const existingNames = new Set(existing.map(d => d.name.toLowerCase()));
-            const toAppend = [];
-            for (const p of parsed) {
-              const name = String(p.name||"").trim();
-              if (!name) continue;
-              if (existingNames.has(name.toLowerCase())) continue;
-              toAppend.push({ id: uid(), name, price: isFinite(Number(p.price)) ? Number(p.price) : 0, desc: p.desc || "", tags: p.tags || "" });
-            }
-            if (toAppend.length) {
-              await updateDishes(existing.concat(toAppend), true);
-              alert(`Importiert und angehängt: ${toAppend.length} neue Gerichte.`);
-            } else {
-              alert("Keine neuen Gerichte zum Anhängen gefunden (Duplikate wurden übersprungen).");
-            }
-          }
-          ev.target.value = "";
-          renderDishList();
-        } catch (err) {
-          console.error(err);
-          alert("Fehler beim Einlesen der Datei. Stelle sicher, dass es eine gültige JSON-Datei ist.");
-        }
-      };
-      reader.readAsText(f);
-    });
-
-    // Orders control
-    $("#clear-orders-btn").addEventListener("click", () => {
-      if (confirm("Alle Bestellungen löschen?")) { setOrders([]); renderOrderList(); }
-    });
-    $("#clear-done-btn").addEventListener("click", () => {
-      const remaining = getOrders().filter(o => o.status !== "done");
-      setOrders(remaining);
-      renderOrderList();
-    });
-
-    function renderOrderList() {
-      const mount = $("#order-list");
-      mount.innerHTML = "";
-      const orders = getOrders();
-      if (!orders.length) {
-        mount.append(el("div", {class:"empty"}, "Noch keine Bestellungen."));
-        return;
-      }
-      for (const o of orders) {
-        const created = o.createdAt ? new Date(o.createdAt) : new Date();
-        const meta = `${created.toLocaleDateString()} ${created.toLocaleTimeString()}`;
-        const badgeClass = o.status === "done" ? "ok" : "warn";
-
-        let dishNodes;
-        if (Array.isArray(o.dishes) && o.dishes.length) {
-          const ul = el("ul", { class: "inline-list" });
-          for (const d of o.dishes) {
-            ul.append(el("li", {}, `${d.name}${(typeof d.price === 'number' && d.price > 0) ? ` (${d.price.toFixed(2)} €)` : ""}`));
-          }
-          dishNodes = ul;
-        } else if (o.dishName) {
-          dishNodes = el("div", {}, `${o.dishName}${o.price ? ` – ${o.price.toFixed(2)} €` : ""}`);
-        } else {
-          dishNodes = el("div", { class: "muted" }, "Keine Gerichte-Daten");
-        }
-
-        const nameNode = o.customerName
-          ? el("div", {}, `Name: ${o.customerName}`)
-          : (o.customer && o.customer.name ? el("div", {}, `Name: ${o.customer.name}`) : null);
-
-        const destinationNode = o.destination
-          ? el("div", { class: "muted" }, `Wohin: ${o.destination}`)
-          : (o.customer ? el("div", { class: "muted" }, `${o.customer.street ? 'Adresse: ' + o.customer.street : ''}`) : el("div", { class: "muted" }, "Wohin: -"));
-
-        const item = el("div", { class:"item" },
-          el("div", { class:"item-header" },
-            el("strong", {}, "Bestellung"),
-            el("span", { class:`badge ${badgeClass}` }, o.status === "done" ? "erledigt" : "in Arbeit")
-          ),
-          el("div", { class:"muted" }, `Bestellt am ${meta}`),
-          dishNodes,
-          nameNode || "",
-          destinationNode,
-          el("div", { class:"actions" },
-            el("button", { class:"ok", onclick: () => { setOrderStatus(o.id, "done"); } }, "Abhaken (erledigt)"),
-            el("button", { class:"warn", onclick: () => { setOrderStatus(o.id, "open"); } }, "Zurück auf 'in Arbeit'"),
-            el("button", { class:"danger", onclick: () => { deleteOrder(o.id); } }, "Löschen")
-          )
-        );
-        mount.append(item);
-      }
-    }
-    function setOrderStatus(id, status) {
-      const orders = getOrders().map(o => o.id === id ? {...o, status} : o);
-      setOrders(orders);
-      renderOrderList();
-    }
-    function deleteOrder(id) {
-      const orders = getOrders().filter(o => o.id !== id);
-      setOrders(orders);
-      renderOrderList();
-    }
-
-    // ---------- Startup / Sync ----------
-    (async function init() {
-      // If remote sync enabled, try to fetch remote dishes and adopt them (overwrites local)
-      if (REMOTE_SYNC && JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
-        const remote = await remoteFetchDishes();
-        if (Array.isArray(remote) && remote.length) {
-          // adopt remote as source of truth
-          setDishesLocal(remote.map(r => ({ ...r })));
-          console.log("Dishes loaded from remote");
-        } else {
-          // if remote empty, push local to remote to initialize
-          const local = getDishesLocal();
-          if (local.length) {
-            try { await remoteSaveDishes(local); console.log("Local dishes pushed to remote"); } catch(e){ console.warn("Push on init failed", e); }
-          }
-        }
-      }
-      if (!location.hash) location.replace("#/client");
-      onHashChange();
-    })();
-  </script>
+// --- Init ---
+async function init() {
+  loadLocal();
+  if(REMOTE_SYNC_DISHES){ try{ dishes=await fetchBin(JSONBIN_DISHES_ID); }catch(e){ console.warn(e); } }
+  if(REMOTE_SYNC_ORDERS){ try{ orders=await fetchBin(JSONBIN_ORDERS_ID); }catch(e){ console.warn(e); } }
+  renderDishes();
+  renderOrders();
+  route();
+}
+window.addEventListener("hashchange", route);
+init();
+</script>
 </body>
 </html>
