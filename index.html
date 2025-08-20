@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gerichte – Client & Admin (Single File)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --accent: #22d3ee;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1200px 800px at 10% 10%, #0b1226 0, var(--bg) 60%);
+      color: var(--text);
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    header {
+      display: flex; gap: 12px; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .brand { font-weight: 700; letter-spacing: .2px; display: flex; gap: 10px; align-items: center;}
+    .brand-badge {
+      width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #22d3ee, #22c55e);
+      box-shadow: 0 0 20px rgba(34, 211, 238, .35);
+    }
+    nav { display: flex; gap: 8px; }
+    a.btn {
+      text-decoration: none; color: var(--text);
+      padding: 10px 14px; border-radius: 12px; background: #0b1220; border: 1px solid #1f2a44;
+    }
+    a.btn.active, a.btn:hover { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(34,211,238,.15) inset; }
+    .panel {
+      background: linear-gradient(180deg, var(--panel) 0, var(--panel-2) 100%);
+      border: 1px solid #243048; border-radius: 16px; padding: 18px; margin: 12px 0;
+      box-shadow: 0 10px 30px rgba(2,6,23,.35);
+    }
+    h1,h2,h3 { margin: 6px 0 10px; }
+    h1 { font-size: 26px; }
+    h2 { font-size: 20px; color: var(--accent); }
+    .grid { display: grid; gap: 14px; }
+    @media (min-width: 900px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+    label { font-size: 14px; color: var(--muted); display:block; margin-bottom:6px; }
+    input, textarea, select {
+      width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #2a385a;
+      background: #0b1220; color: var(--text); outline: none;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      padding: 10px 14px; border-radius: 12px; border: 1px solid #2a385a;
+      background: #0b1220; color: var(--text); cursor: pointer;
+    }
+    button.primary { border-color: var(--accent); }
+    button.ok { border-color: var(--ok); }
+    button.warn { border-color: var(--warn); }
+    button.danger { border-color: var(--danger); }
+    .muted { color: var(--muted); font-size: 14px; }
+    .list { display: grid; gap: 10px; }
+    .item {
+      display: grid; gap: 6px; padding: 12px; border: 1px solid #25314c; border-radius: 14px;
+      background: #0b1220;
+    }
+    .item-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .badge {
+      padding: 4px 8px; border-radius: 999px; border: 1px solid #2a385a; font-size: 12px;
+    }
+    .badge.ok { border-color: var(--ok); }
+    .badge.warn { border-color: var(--warn); }
+    .empty {
+      padding: 16px; border: 1px dashed #2a385a; border-radius: 12px; color: var(--muted);
+      text-align: center;
+    }
+    .footer { margin-top: 24px; color: var(--muted); font-size: 12px; text-align: center; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    /* checkbox list styling */
+    .dish-checkbox-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:10px; background:transparent; border:1px solid transparent; }
+    .dish-checkbox-row input[type="checkbox"] { width:18px; height:18px; }
+    .dish-checkbox-row label { cursor:pointer; }
+    ul.inline-list { margin:0; padding-left:18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true"></div>
+        <div>
+          <div style="font-size:14px;color:var(--muted)">Single-File App</div>
+          <div style="font-size:18px">Gerichte – Client & Admin</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#/client" id="link-client" class="btn">Client</a>
+        <!-- Admin-Tab absichtlich entfernt, damit Clients nicht per UI reinkommen -->
+      </nav>
+    </header>
+
+    <!-- Client View -->
+    <section id="view-client" class="panel" hidden>
+      <h1>Bestellung aufgeben</h1>
+      <div class="grid grid-2">
+        <div class="panel">
+          <h2>1) Gerichte wählen</h2>
+          <div id="client-dish-picker"></div>
+        </div>
+        <div class="panel">
+          <h2>2) Wohin & Name</h2>
+          <form id="order-form">
+            <label for="customer-name">Name</label>
+            <input id="customer-name" name="customer-name" placeholder="Max Mustermann" required />
+
+            <label for="destination">Wohin</label>
+            <input id="destination" name="destination" placeholder="z. B. Musterstraße 12, 12345 Musterstadt" required />
+            <div class="actions" style="margin-top:10px">
+              <button class="primary" type="submit">Bestellen</button>
+              <button type="reset" id="order-reset-btn">Zurücksetzen</button>
+            </div>
+            <div class="hint">Nach Absenden erscheint deine Bestellung im Admin-Bereich.</div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Admin View -->
+    <section id="view-admin" class="panel" hidden>
+      <h1>Admin</h1>
+      <div class="grid grid-2">
+        <div class="panel">
+          <h2>Gerichte verwalten</h2>
+          <form id="dish-form">
+            <label for="dish-name">Gericht</label>
+            <input id="dish-name" placeholder="z. B. Spaghetti Bolognese" required />
+            <div class="row">
+              <div>
+                <label for="dish-price">Preis (€)</label>
+                <input id="dish-price" type="number" step="0.01" min="0" placeholder="9.90" />
+              </div>
+              <div>
+                <label for="dish-tags">Tags (optional)</label>
+                <input id="dish-tags" placeholder="vegan, scharf, ..."/>
+              </div>
+            </div>
+            <label for="dish-desc">Beschreibung (optional)</label>
+            <textarea id="dish-desc" placeholder="Kurzbeschreibung..."></textarea>
+            <div class="actions" style="margin-top:10px">
+              <button class="primary" type="submit">Gericht anlegen</button>
+              <button type="button" id="seed-btn">Demo-Daten füllen</button>
+              <button class="warn" type="button" id="clear-dishes-btn">Alle Gerichte löschen</button>
+            </div>
+          </form>
+          <div id="dish-list" class="list" style="margin-top:10px"></div>
+        </div>
+        <div class="panel">
+          <h2>Eingehende Bestellungen</h2>
+          <div class="actions" style="margin-bottom:8px">
+            <button class="warn" id="clear-done-btn" type="button">Erledigte entfernen</button>
+            <button class="danger" id="clear-orders-btn" type="button">Alle Bestellungen löschen</button>
+          </div>
+          <div id="order-list" class="list"></div>
+          <div class="hint">Bestellungen werden lokal im Browser gespeichert (localStorage).</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Routen: <code>#/client</code> und <code>#/admin</code> • Single File • GitHub Pages kompatibel
+    </div>
+  </div>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const el = (tag, attrs={}, ...children) => {
+      const n = document.createElement(tag);
+      Object.entries(attrs).forEach(([k,v]) => {
+        if (k === "class") n.className = v;
+        else if (k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2), v);
+        else if (v !== undefined && v !== null) n.setAttribute(k, v);
+      });
+      for (const c of children) n.append(c instanceof Node ? c : document.createTextNode(c));
+      return n;
+    };
+    const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+
+    // ---------- Storage Layer ----------
+    const LS_KEYS = {
+      dishes: "app.dishes.v1",
+      orders: "app.orders.v1",
+    };
+    const getDishes = () => {
+      try { return JSON.parse(localStorage.getItem(LS_KEYS.dishes) || "[]"); } catch(e){ return []; }
+    };
+    const setDishes = (arr) => localStorage.setItem(LS_KEYS.dishes, JSON.stringify(arr));
+    const getOrders = () => {
+      try { return JSON.parse(localStorage.getItem(LS_KEYS.orders) || "[]"); } catch(e){ return []; }
+    };
+    const setOrders = (arr) => localStorage.setItem(LS_KEYS.orders, JSON.stringify(arr));
+
+    // simple client-side admin password (only deterrent, not secure)
+    const ADMIN_PASSWORD = "admin123";
+
+    // Seed demo dishes if none
+    function seedDemo() {
+      if (getDishes().length) return;
+      setDishes([
+        { id: uid(), name: "Margherita", price: 7.5, desc: "Tomate, Mozzarella, Basilikum", tags: "vegetarisch" },
+        { id: uid(), name: "Spaghetti Bolognese", price: 9.9, desc: "Hausgemachte Soße", tags: "" },
+        { id: uid(), name: "Rotes Thai Curry", price: 11.5, desc: "Mit Gemüse & Kokos", tags: "scharf, vegan" }
+      ]);
+    }
+
+    // ---------- Router (Hash) ----------
+    const routes = {
+      "/client": () => showView("client"),
+      "/admin": () => requireAdminAccess(), // guarded
+      "/": () => location.replace("#/client"),
+    };
+    function showView(name) {
+      $("#view-client").hidden = name !== "client";
+      $("#view-admin").hidden = name !== "admin";
+      const linkClient = $("#link-client");
+      if (linkClient) linkClient.classList.toggle("active", name === "client");
+      const linkAdmin = $("#link-admin");
+      if (linkAdmin) linkAdmin.classList.toggle("active", name === "admin");
+      if (name === "client") renderClient();
+      if (name === "admin") renderAdmin();
+    }
+    function onHashChange() {
+      const path = location.hash.replace("#", "") || "/client";
+      (routes[path] || routes["/"])();
+    }
+    window.addEventListener("hashchange", onHashChange);
+
+    function requireAdminAccess() {
+      // prompt for password; wrong -> redirect to client
+      const pw = prompt("Admin-Passwort eingeben:");
+      if (pw === ADMIN_PASSWORD) {
+        showView("admin");
+      } else {
+        alert("Zugriff verweigert.");
+        location.replace("#/client");
+      }
+    }
+
+    // ---------- Client View ----------
+    function renderClient() {
+      const mount = $("#client-dish-picker");
+      mount.innerHTML = "";
+      const dishes = getDishes();
+      if (!dishes.length) {
+        mount.append(el("div", {class:"empty"}, "Noch keine Gerichte verfügbar. Bitte Admin fragen, welche anzulegen."));
+        return;
+      }
+
+      // Create checkbox list (multiple selection)
+      const listWrap = el("div");
+      for (const d of dishes) {
+        const row = el("div", { class: "dish-checkbox-row" });
+        const cb = el("input", { type: "checkbox", value: d.id, id: "dish-" + d.id });
+        const label = el("label", { for: "dish-" + d.id }, `${d.name}${d.price ? ` – ${d.price.toFixed(2)} €` : ""}`);
+        const desc = d.desc ? el("div", { class: "muted", style: "font-size:13px; margin-left:28px;" }, d.desc) : null;
+        row.append(cb, label);
+        listWrap.append(row);
+        if (desc) listWrap.append(desc);
+      }
+      mount.append(listWrap);
+    }
+
+    // Submit handler (multiple dishes + destination + name)
+    $("#order-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const dishesAll = getDishes();
+      // collect checked checkboxes inside client-dish-picker
+      const checked = Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]:checked"))
+        .map(cb => dishesAll.find(d => d.id === cb.value))
+        .filter(Boolean);
+
+      if (!checked.length) { alert("Bitte mindestens ein Gericht auswählen."); return; }
+
+      const customerName = $("#customer-name").value.trim();
+      if (!customerName) { alert("Bitte deinen Namen angeben."); return; }
+
+      const destination = $("#destination").value.trim();
+      if (!destination) { alert("Bitte Feld 'Wohin' ausfüllen."); return; }
+
+      const order = {
+        id: uid(),
+        dishes: checked.map(d => ({ id: d.id, name: d.name, price: d.price || 0 })),
+        destination,
+        customerName,
+        status: "open",
+        createdAt: new Date().toISOString(),
+      };
+
+      const orders = getOrders();
+      orders.unshift(order);
+      setOrders(orders);
+
+      // reset form + uncheck checkboxes
+      e.target.reset();
+      Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]")).forEach(cb => cb.checked = false);
+
+      alert("Bestellung wurde übermittelt.");
+    });
+
+    // Reset button behaviour: also uncheck checkboxes
+    $("#order-reset-btn").addEventListener("click", () => {
+      Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]")).forEach(cb => cb.checked = false);
+    });
+
+    // ---------- Admin View ----------
+    function renderAdmin() {
+      renderDishList();
+      renderOrderList();
+    }
+
+    // Dishes
+    $("#dish-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = $("#dish-name").value.trim();
+      const price = parseFloat($("#dish-price").value);
+      const desc = $("#dish-desc").value.trim();
+      const tags = $("#dish-tags").value.trim();
+      if (!name) { alert("Gerichtsname erforderlich."); return; }
+      const dishes = getDishes();
+      dishes.unshift({ id: uid(), name, price: isFinite(price) ? price : 0, desc, tags });
+      setDishes(dishes);
+      e.target.reset();
+      renderDishList();
+    });
+
+    $("#seed-btn").addEventListener("click", () => { seedDemo(); renderDishList(); });
+    $("#clear-dishes-btn").addEventListener("click", () => {
+      if (confirm("Alle Gerichte wirklich löschen?")) { setDishes([]); renderDishList(); }
+    });
+
+    function renderDishList() {
+      const mount = $("#dish-list");
+      mount.innerHTML = "";
+      const dishes = getDishes();
+      if (!dishes.length) {
+        mount.append(el("div", {class:"empty"}, "Keine Gerichte vorhanden."));
+        return;
+      }
+      for (const d of dishes) {
+        const item = el("div", { class:"item" },
+          el("div", { class:"item-header" },
+            el("strong", {}, d.name),
+            el("div", {}, d.price ? el("span", { class:"badge" }, `${d.price.toFixed(2)} €`) : "")
+          ),
+          d.desc ? el("div", { class:"muted" }, d.desc) : "",
+          d.tags ? el("div", { class:"muted" }, `Tags: ${d.tags}`) : "",
+          el("div", { class:"actions" },
+            el("button", { class:"danger", onclick: () => { deleteDish(d.id); } }, "Löschen")
+          )
+        );
+        mount.append(item);
+      }
+    }
+    function deleteDish(id) {
+      const dishes = getDishes().filter(d => d.id !== id);
+      setDishes(dishes);
+      renderDishList();
+    }
+
+    // Orders
+    $("#clear-orders-btn").addEventListener("click", () => {
+      if (confirm("Alle Bestellungen löschen?")) { setOrders([]); renderOrderList(); }
+    });
+    $("#clear-done-btn").addEventListener("click", () => {
+      const remaining = getOrders().filter(o => o.status !== "done");
+      setOrders(remaining);
+      renderOrderList();
+    });
+
+    function renderOrderList() {
+      const mount = $("#order-list");
+      mount.innerHTML = "";
+      const orders = getOrders();
+      if (!orders.length) {
+        mount.append(el("div", {class:"empty"}, "Noch keine Bestellungen."));
+        return;
+      }
+      for (const o of orders) {
+        const created = o.createdAt ? new Date(o.createdAt) : new Date();
+        const meta = `${created.toLocaleDateString()} ${created.toLocaleTimeString()}`;
+        const badgeClass = o.status === "done" ? "ok" : "warn";
+
+        // display dishes (list)
+        let dishNodes;
+        if (Array.isArray(o.dishes) && o.dishes.length) {
+          const ul = el("ul", { class: "inline-list" });
+          for (const d of o.dishes) {
+            ul.append(el("li", {}, `${d.name}${(typeof d.price === 'number' && d.price > 0) ? ` (${d.price.toFixed(2)} €)` : ""}`));
+          }
+          dishNodes = ul;
+        } else if (o.dishName) {
+          dishNodes = el("div", {}, `${o.dishName}${o.price ? ` – ${o.price.toFixed(2)} €` : ""}`);
+        } else {
+          dishNodes = el("div", { class: "muted" }, "Keine Gerichte-Daten");
+        }
+
+        // Name & destination handling (support legacy and new format)
+        const nameNode = o.customerName
+          ? el("div", {}, `Name: ${o.customerName}`)
+          : (o.customer && o.customer.name ? el("div", {}, `Name: ${o.customer.name}`) : null);
+
+        const destinationNode = o.destination
+          ? el("div", { class: "muted" }, `Wohin: ${o.destination}`)
+          : (o.customer ? el("div", { class: "muted" }, `${o.customer.street ? 'Adresse: ' + o.customer.street : ''}`) : el("div", { class: "muted" }, "Wohin: -"));
+
+        const item = el("div", { class:"item" },
+          el("div", { class:"item-header" },
+            el("strong", {}, "Bestellung"),
+            el("span", { class:`badge ${badgeClass}` }, o.status === "done" ? "erledigt" : "in Arbeit")
+          ),
+          el("div", { class:"muted" }, `Bestellt am ${meta}`),
+          dishNodes,
+          nameNode || "",
+          destinationNode,
+          el("div", { class:"actions" },
+            el("button", { class:"ok", onclick: () => { setOrderStatus(o.id, "done"); } }, "Abhaken (erledigt)"),
+            el("button", { class:"warn", onclick: () => { setOrderStatus(o.id, "open"); } }, "Zurück auf 'in Arbeit'"),
+            el("button", { class:"danger", onclick: () => { deleteOrder(o.id); } }, "Löschen")
+          )
+        );
+        mount.append(item);
+      }
+    }
+    function setOrderStatus(id, status) {
+      const orders = getOrders().map(o => o.id === id ? {...o, status} : o);
+      setOrders(orders);
+      renderOrderList();
+    }
+    function deleteOrder(id) {
+      const orders = getOrders().filter(o => o.id !== id);
+      setOrders(orders);
+      renderOrderList();
+    }
+
+    // ---------- Init ----------
+    (function init() {
+      if (!location.hash) location.replace("#/client");
+      onHashChange();
+    })();
+  </script>
+</body>
+</html>
