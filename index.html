@@ -161,7 +161,7 @@
             </div>
           </form>
 
-          <!-- NEW: Export / Import Gerichte -->
+          <!-- Export / Import Gerichte -->
           <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
             <button id="export-dishes-btn">Gerichte exportieren</button>
             <button id="import-dishes-btn">Gerichte importieren</button>
@@ -204,37 +204,109 @@
     };
     const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 
+    // ---------- REMOTE SYNC CONFIG ----------
+    // Wenn du automatische Synchronisation möchtest, setze REMOTE_SYNC = true
+    // und trage hier die Daten aus deinem JSONBin.io Account ein.
+    // Erstelle (kostenlos) ein Konto auf https://jsonbin.io, erstelle eine Bin und generiere einen API-Key (Master Key oder Access Key mit Update-Rechten).
+    const REMOTE_SYNC = true; // false = nur localStorage (Standard). true = sync mit JSONBin
+    const JSONBIN_BIN_ID = "68a5d4feae596e708fcf10d3"; // z.B. '6360e54a65b57a31e6a94a42'
+    const JSONBIN_MASTER_KEY = "$2a$10$N/2gxnECUzbO8QCffVQ7Ye6N5Oare5DGjQCPaTkkcovABoafVICSS"; // dein JSONBin Master Key / Access Key
+    const JSONBIN_URL = JSONBIN_BIN_ID ? `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}` : "";
+    // ---------------------------------------
+
     // ---------- Storage Layer ----------
     const LS_KEYS = {
       dishes: "app.dishes.v1",
       orders: "app.orders.v1",
     };
-    const getDishes = () => {
+    const getDishesLocal = () => {
       try { return JSON.parse(localStorage.getItem(LS_KEYS.dishes) || "[]"); } catch(e){ return []; }
     };
-    const setDishes = (arr) => localStorage.setItem(LS_KEYS.dishes, JSON.stringify(arr));
+    const setDishesLocal = (arr) => localStorage.setItem(LS_KEYS.dishes, JSON.stringify(arr));
     const getOrders = () => {
       try { return JSON.parse(localStorage.getItem(LS_KEYS.orders) || "[]"); } catch(e){ return []; }
     };
     const setOrders = (arr) => localStorage.setItem(LS_KEYS.orders, JSON.stringify(arr));
 
-    // simple client-side admin password (only deterrent, not secure)
-    const ADMIN_PASSWORD = "admin123";
+    // Helper to update dishes locally and optionally push to remote
+    async function updateDishes(dishes, syncRemote = true) {
+      setDishesLocal(dishes);
+      if (REMOTE_SYNC && syncRemote && JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
+        try {
+          await remoteSaveDishes(dishes);
+          console.log("Remote dishes updated");
+        } catch (err) {
+          console.warn("Remote save failed:", err);
+          alert("Warnung: Remote-Synchronisation fehlgeschlagen. Änderungen sind lokal gespeichert.");
+        }
+      }
+    }
 
-    // Seed demo dishes if none
-    function seedDemo() {
-      if (getDishes().length) return;
-      setDishes([
+    // ---------- Remote (JSONBin) helpers ----------
+    async function remoteFetchDishes() {
+      if (!REMOTE_SYNC || !JSONBIN_BIN_ID) return null;
+      const url = JSONBIN_URL;
+      const headers = {};
+      if (JSONBIN_MASTER_KEY) headers['X-Master-Key'] = JSONBIN_MASTER_KEY;
+      try {
+        const res = await fetch(url, { method: 'GET', headers });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const payload = await res.json();
+        // try multiple shapes: payload.record.dishes | payload.record.data | payload.dishes | payload
+        let remote = null;
+        if (payload && payload.record) {
+          remote = payload.record.dishes ?? payload.record.data ?? payload.record;
+        } else {
+          remote = payload.dishes ?? payload.data ?? payload;
+        }
+        // If remote is object with wrapper, try to extract array
+        if (remote && Array.isArray(remote)) return remote;
+        // if remote is object like { dishes: [...] }
+        if (remote && typeof remote === 'object') {
+          for (const v of Object.values(remote)) {
+            if (Array.isArray(v)) return v;
+          }
+        }
+        return null;
+      } catch (err) {
+        console.warn("remoteFetchDishes error:", err);
+        return null;
+      }
+    }
+
+    async function remoteSaveDishes(dishes) {
+      if (!REMOTE_SYNC || !JSONBIN_BIN_ID || !JSONBIN_MASTER_KEY) throw new Error('Remote sync not configured');
+      const url = JSONBIN_URL;
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_MASTER_KEY
+      };
+      // JSONBin expects the JSON content as you want it stored. We'll store { dishes: [...] }.
+      const body = JSON.stringify({ dishes });
+      const res = await fetch(url, { method: 'PUT', headers, body });
+      if (!res.ok) {
+        const text = await res.text().catch(()=>'');
+        throw new Error('HTTP ' + res.status + ' ' + text);
+      }
+      return await res.json();
+    }
+
+    // ---------- Seed demo dishes if none ----------
+    async function seedDemo() {
+      const existing = getDishesLocal();
+      if (existing.length) return;
+      const demo = [
         { id: uid(), name: "Margherita", price: 7.5, desc: "Tomate, Mozzarella, Basilikum", tags: "vegetarisch" },
         { id: uid(), name: "Spaghetti Bolognese", price: 9.9, desc: "Hausgemachte Soße", tags: "" },
         { id: uid(), name: "Rotes Thai Curry", price: 11.5, desc: "Mit Gemüse & Kokos", tags: "scharf, vegan" }
-      ]);
+      ];
+      await updateDishes(demo, true);
     }
 
     // ---------- Router (Hash) ----------
     const routes = {
       "/client": () => showView("client"),
-      "/admin": () => requireAdminAccess(), // guarded
+      "/admin": () => requireAdminAccess(),
       "/": () => location.replace("#/client"),
     };
     function showView(name) {
@@ -253,8 +325,10 @@
     }
     window.addEventListener("hashchange", onHashChange);
 
+    // simple client-side admin password (only deterrent, not secure)
+    const ADMIN_PASSWORD = "admin123";
+
     function requireAdminAccess() {
-      // prompt for password; wrong -> redirect to client
       const pw = prompt("Admin-Passwort eingeben:");
       if (pw === ADMIN_PASSWORD) {
         showView("admin");
@@ -268,13 +342,12 @@
     function renderClient() {
       const mount = $("#client-dish-picker");
       mount.innerHTML = "";
-      const dishes = getDishes();
+      const dishes = getDishesLocal();
       if (!dishes.length) {
         mount.append(el("div", {class:"empty"}, "Noch keine Gerichte verfügbar. Bitte Admin fragen, welche anzulegen."));
         return;
       }
 
-      // Create checkbox list (multiple selection)
       const listWrap = el("div");
       for (const d of dishes) {
         const row = el("div", { class: "dish-checkbox-row" });
@@ -291,8 +364,7 @@
     // Submit handler (multiple dishes + destination + name)
     $("#order-form").addEventListener("submit", (e) => {
       e.preventDefault();
-      const dishesAll = getDishes();
-      // collect checked checkboxes inside client-dish-picker
+      const dishesAll = getDishesLocal();
       const checked = Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]:checked"))
         .map(cb => dishesAll.find(d => d.id === cb.value))
         .filter(Boolean);
@@ -318,7 +390,6 @@
       orders.unshift(order);
       setOrders(orders);
 
-      // reset form + uncheck checkboxes
       e.target.reset();
       Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]")).forEach(cb => cb.checked = false);
 
@@ -337,29 +408,29 @@
     }
 
     // Dishes
-    $("#dish-form").addEventListener("submit", (e) => {
+    $("#dish-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const name = $("#dish-name").value.trim();
       const price = parseFloat($("#dish-price").value);
       const desc = $("#dish-desc").value.trim();
       const tags = $("#dish-tags").value.trim();
       if (!name) { alert("Gerichtsname erforderlich."); return; }
-      const dishes = getDishes();
+      const dishes = getDishesLocal();
       dishes.unshift({ id: uid(), name, price: isFinite(price) ? price : 0, desc, tags });
-      setDishes(dishes);
+      await updateDishes(dishes, true);
       e.target.reset();
       renderDishList();
     });
 
-    $("#seed-btn").addEventListener("click", () => { seedDemo(); renderDishList(); });
-    $("#clear-dishes-btn").addEventListener("click", () => {
-      if (confirm("Alle Gerichte wirklich löschen?")) { setDishes([]); renderDishList(); }
+    $("#seed-btn").addEventListener("click", async () => { await seedDemo(); renderDishList(); });
+    $("#clear-dishes-btn").addEventListener("click", async () => {
+      if (confirm("Alle Gerichte wirklich löschen?")) { await updateDishes([], true); renderDishList(); }
     });
 
     function renderDishList() {
       const mount = $("#dish-list");
       mount.innerHTML = "";
-      const dishes = getDishes();
+      const dishes = getDishesLocal();
       if (!dishes.length) {
         mount.append(el("div", {class:"empty"}, "Keine Gerichte vorhanden."));
         return;
@@ -373,21 +444,21 @@
           d.desc ? el("div", { class:"muted" }, d.desc) : "",
           d.tags ? el("div", { class:"muted" }, `Tags: ${d.tags}`) : "",
           el("div", { class:"actions" },
-            el("button", { class:"danger", onclick: () => { deleteDish(d.id); } }, "Löschen")
+            el("button", { class:"danger", onclick: async () => { await deleteDish(d.id); } }, "Löschen")
           )
         );
         mount.append(item);
       }
     }
-    function deleteDish(id) {
-      const dishes = getDishes().filter(d => d.id !== id);
-      setDishes(dishes);
+    async function deleteDish(id) {
+      const dishes = getDishesLocal().filter(d => d.id !== id);
+      await updateDishes(dishes, true);
       renderDishList();
     }
 
-    // NEW: Export / Import handlers
+    // Export / Import handlers
     $("#export-dishes-btn").addEventListener("click", () => {
-      const data = getDishes();
+      const data = getDishesLocal();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -403,23 +474,20 @@
       $("#import-dishes-file").click();
     });
 
-    $("#import-dishes-file").addEventListener("change", (ev) => {
+    $("#import-dishes-file").addEventListener("change", async (ev) => {
       const f = ev.target.files && ev.target.files[0];
       if (!f) return;
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         try {
           const parsed = JSON.parse(e.target.result);
           if (!Array.isArray(parsed)) { alert("Ungültiges Format: JSON-Array erwartet."); return; }
-          // ask user: ersetzen oder anhängen?
           if (confirm("Gerichte ersetzen? OK = ersetzen, Abbrechen = anhängen (keine Duplikate nach Name).")) {
-            // Normalize and assign new ids
             const normalized = parsed.map(p => ({ id: uid(), name: String(p.name||"").trim(), price: isFinite(Number(p.price)) ? Number(p.price) : 0, desc: p.desc || "", tags: p.tags || "" })).filter(x => x.name);
-            setDishes(normalized);
+            await updateDishes(normalized, true);
             alert("Gerichte ersetzt (importiert).");
           } else {
-            // append but avoid duplicate names
-            const existing = getDishes();
+            const existing = getDishesLocal();
             const existingNames = new Set(existing.map(d => d.name.toLowerCase()));
             const toAppend = [];
             for (const p of parsed) {
@@ -429,13 +497,13 @@
               toAppend.push({ id: uid(), name, price: isFinite(Number(p.price)) ? Number(p.price) : 0, desc: p.desc || "", tags: p.tags || "" });
             }
             if (toAppend.length) {
-              setDishes(existing.concat(toAppend));
+              await updateDishes(existing.concat(toAppend), true);
               alert(`Importiert und angehängt: ${toAppend.length} neue Gerichte.`);
             } else {
               alert("Keine neuen Gerichte zum Anhängen gefunden (Duplikate wurden übersprungen).");
             }
           }
-          ev.target.value = ""; // reset file input
+          ev.target.value = "";
           renderDishList();
         } catch (err) {
           console.error(err);
@@ -445,7 +513,7 @@
       reader.readAsText(f);
     });
 
-    // Orders
+    // Orders control
     $("#clear-orders-btn").addEventListener("click", () => {
       if (confirm("Alle Bestellungen löschen?")) { setOrders([]); renderOrderList(); }
     });
@@ -468,7 +536,6 @@
         const meta = `${created.toLocaleDateString()} ${created.toLocaleTimeString()}`;
         const badgeClass = o.status === "done" ? "ok" : "warn";
 
-        // display dishes (list)
         let dishNodes;
         if (Array.isArray(o.dishes) && o.dishes.length) {
           const ul = el("ul", { class: "inline-list" });
@@ -482,7 +549,6 @@
           dishNodes = el("div", { class: "muted" }, "Keine Gerichte-Daten");
         }
 
-        // Name & destination handling (support legacy and new format)
         const nameNode = o.customerName
           ? el("div", {}, `Name: ${o.customerName}`)
           : (o.customer && o.customer.name ? el("div", {}, `Name: ${o.customer.name}`) : null);
@@ -520,8 +586,23 @@
       renderOrderList();
     }
 
-    // ---------- Init ----------
-    (function init() {
+    // ---------- Startup / Sync ----------
+    (async function init() {
+      // If remote sync enabled, try to fetch remote dishes and adopt them (overwrites local)
+      if (REMOTE_SYNC && JSONBIN_BIN_ID && JSONBIN_MASTER_KEY) {
+        const remote = await remoteFetchDishes();
+        if (Array.isArray(remote) && remote.length) {
+          // adopt remote as source of truth
+          setDishesLocal(remote.map(r => ({ ...r })));
+          console.log("Dishes loaded from remote");
+        } else {
+          // if remote empty, push local to remote to initialize
+          const local = getDishesLocal();
+          if (local.length) {
+            try { await remoteSaveDishes(local); console.log("Local dishes pushed to remote"); } catch(e){ console.warn("Push on init failed", e); }
+          }
+        }
+      }
       if (!location.hash) location.replace("#/client");
       onHashChange();
     })();
