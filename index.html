@@ -277,7 +277,7 @@ function deleteDish(idx){
 document.getElementById("dish-reset-btn").addEventListener("click",()=>document.getElementById("dish-form").reset());
 
 // --- Orders ---
-function renderOrders() {
+async function renderOrders() {
   const list = document.getElementById("order-list");
   list.innerHTML = "";
   if(!orders.length){ 
@@ -303,12 +303,38 @@ function renderOrders() {
 }
 
 // --- Order Actions ---
-function completeOrder(idx){
+document.getElementById("order-form").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const name=document.getElementById("customer-name").value.trim();
+  const destination=document.getElementById("destination").value.trim();
+  const items=Array.from(document.querySelectorAll("#client-dish-picker input[type=checkbox]:checked")).map(i=>dishes[parseInt(i.value)].name);
+  if(!name||!destination||!items.length) return alert("Bitte alles ausfüllen und mindestens ein Gericht auswählen!");
+  orders.push({name,destination,items});
+  renderOrders();
+  saveLocal();
+  if(REMOTE_SYNC_ORDERS) await saveBin(JSONBIN_ORDERS_ID,orders); // sofort speichern
+  e.target.reset();
+  document.querySelectorAll("#client-dish-picker input[type=checkbox]").forEach(c=>c.checked=false);
+});
+
+// --- Admin Auto-Refresh ---
+async function refreshOrders(){
+  if(!REMOTE_SYNC_ORDERS) return;
+  try{
+    const remoteOrders = await fetchBin(JSONBIN_ORDERS_ID);
+    orders = remoteOrders || [];
+    renderOrders();
+  } catch(e){ console.warn("Fehler beim Laden der Bestellungen", e); }
+}
+setInterval(refreshOrders, 5000); // alle 5 Sekunden aktualisieren
+
+// --- Complete Order ---
+async function completeOrder(idx){
   if(!confirm("Markieren als erledigt / löschen?")) return;
   orders.splice(idx,1);
   renderOrders();
   saveLocal();
-  if(REMOTE_SYNC_ORDERS) saveBin(JSONBIN_ORDERS_ID,orders);
+  if(REMOTE_SYNC_ORDERS) await saveBin(JSONBIN_ORDERS_ID,orders);
 }
 
 // --- Routing ---
