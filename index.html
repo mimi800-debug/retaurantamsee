@@ -160,6 +160,15 @@
               <button class="warn" type="button" id="clear-dishes-btn">Alle Gerichte löschen</button>
             </div>
           </form>
+
+          <!-- NEW: Export / Import Gerichte -->
+          <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="export-dishes-btn">Gerichte exportieren</button>
+            <button id="import-dishes-btn">Gerichte importieren</button>
+            <input id="import-dishes-file" type="file" accept="application/json" style="display:none" />
+            <div class="muted" style="align-self:center; font-size:13px;">Export/Import synchronisiert manuell zwischen Geräten.</div>
+          </div>
+
           <div id="dish-list" class="list" style="margin-top:10px"></div>
         </div>
         <div class="panel">
@@ -375,6 +384,66 @@
       setDishes(dishes);
       renderDishList();
     }
+
+    // NEW: Export / Import handlers
+    $("#export-dishes-btn").addEventListener("click", () => {
+      const data = getDishes();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gerichte_export_" + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    $("#import-dishes-btn").addEventListener("click", () => {
+      $("#import-dishes-file").click();
+    });
+
+    $("#import-dishes-file").addEventListener("change", (ev) => {
+      const f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!Array.isArray(parsed)) { alert("Ungültiges Format: JSON-Array erwartet."); return; }
+          // ask user: ersetzen oder anhängen?
+          if (confirm("Gerichte ersetzen? OK = ersetzen, Abbrechen = anhängen (keine Duplikate nach Name).")) {
+            // Normalize and assign new ids
+            const normalized = parsed.map(p => ({ id: uid(), name: String(p.name||"").trim(), price: isFinite(Number(p.price)) ? Number(p.price) : 0, desc: p.desc || "", tags: p.tags || "" })).filter(x => x.name);
+            setDishes(normalized);
+            alert("Gerichte ersetzt (importiert).");
+          } else {
+            // append but avoid duplicate names
+            const existing = getDishes();
+            const existingNames = new Set(existing.map(d => d.name.toLowerCase()));
+            const toAppend = [];
+            for (const p of parsed) {
+              const name = String(p.name||"").trim();
+              if (!name) continue;
+              if (existingNames.has(name.toLowerCase())) continue;
+              toAppend.push({ id: uid(), name, price: isFinite(Number(p.price)) ? Number(p.price) : 0, desc: p.desc || "", tags: p.tags || "" });
+            }
+            if (toAppend.length) {
+              setDishes(existing.concat(toAppend));
+              alert(`Importiert und angehängt: ${toAppend.length} neue Gerichte.`);
+            } else {
+              alert("Keine neuen Gerichte zum Anhängen gefunden (Duplikate wurden übersprungen).");
+            }
+          }
+          ev.target.value = ""; // reset file input
+          renderDishList();
+        } catch (err) {
+          console.error(err);
+          alert("Fehler beim Einlesen der Datei. Stelle sicher, dass es eine gültige JSON-Datei ist.");
+        }
+      };
+      reader.readAsText(f);
+    });
 
     // Orders
     $("#clear-orders-btn").addEventListener("click", () => {
